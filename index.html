@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HX3-F68 Sharp Tools Record</title>
+<style>
+  :root{--line:#000;--bg:#e9ecef;--ink:#000}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);font-family:Arial,Helvetica,sans-serif;color:var(--ink)}
+  .bar{position:sticky;top:0;z-index:5;display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 14px;background:#1f3a5f;color:#fff;font-size:14px}
+  .bar b{margin-right:auto}
+  .bar button.tab{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.55)}
+  .bar button.tab.active{background:#fff;color:#1f3a5f}
+  .quickbar{display:flex;gap:14px;align-items:center;flex-wrap:wrap;padding:10px 14px;background:#fff;border-bottom:1px solid #ccc;font-size:13px}
+  .quickbar input[type=text],.quickbar input:not([type]){width:70px;padding:6px;border:1px solid #999;border-radius:6px;font-size:13px;text-transform:uppercase;text-align:center}
+  .quickbar .wk{display:flex;align-items:center;gap:6px}
+  .quickbar .hint{color:#666;font-size:12px}
+  body.rec .quickbar,body.editing .quickbar{display:none}
+  .ini{cursor:pointer}
+  .recpanel{display:none;gap:10px;align-items:center;flex-wrap:wrap;padding:12px 14px;background:#fff;border-bottom:1px solid #ccc;font-size:14px}
+  body.rec .recpanel{display:flex}
+  .recpanel select{padding:8px;font-size:14px;border:1px solid #999;border-radius:6px;min-width:220px}
+  .recpanel button{background:#1f3a5f;color:#fff;border:0;border-radius:6px;padding:8px 20px;font-weight:700;cursor:pointer;font-size:14px}
+  .recpanel .hint{color:#666;font-size:12px}
+  body.rec .fillonly{display:none}
+  body.rec .tick,body.rec .grid .days th{cursor:default !important}
+  body.rec .tick:hover,body.rec .grid .days th:hover{background:none !important}
+  body.rec #monthIn{display:none}
+  body.rec #monthText{display:inline}
+  .bar button{border:0;border-radius:6px;padding:8px 14px;font-size:14px;cursor:pointer;background:#fff;color:#1f3a5f;font-weight:700}
+  .bar button.danger{background:#fde8e8;color:#9b1c1c}
+  #status{font-size:12px;opacity:.85}
+  .scroll{overflow-x:auto;padding:14px}
+  .sheet{width:26.3cm;margin:0 auto;background:#fff;padding:1.2cm .4cm .6cm .4cm;font-size:7.5pt}
+  table{border-collapse:collapse;table-layout:fixed;width:26.3cm}
+  td,th{border:.75pt solid var(--line);padding:0 2px;font-weight:normal;overflow:hidden;white-space:nowrap}
+
+  /* header block */
+  .hdr td{height:.5cm;font-size:7.5pt;vertical-align:middle}
+  .hdr .title{text-align:center;font-weight:bold;font-size:8pt}
+  .hdr .lbl{padding-left:3px}
+
+  .monthline{height:1.2cm;display:flex;align-items:flex-start;padding-top:.45cm;font-size:7.5pt}
+  .monthline input{font:inherit;border:0;border-bottom:1px dashed #888;margin-left:6px;background:transparent}
+  #monthText{display:none;margin-left:6px}
+
+  /* grid */
+  .grid{margin-top:.1cm}
+  .grid th{background:#d9d9d9;font-weight:bold}
+  .grid .t1{height:.38cm;font-size:7.5pt;font-style:italic}
+  .grid .t1 b{font-style:normal}
+  .grid .days th:not([contenteditable]){cursor:pointer}.grid .days th:not([contenteditable]):hover{background:#bfdbfe}
+  .grid .days th{overflow:hidden;height:.27cm;font-size:5.5pt;padding:0;text-align:center;line-height:1}
+  .grid tbody tr{height:.58cm}
+  .grid td.name{padding-left:3px;font-size:7.5pt}
+  .grid td.freq{text-align:center;font-size:7.5pt}
+  .blk{background:#000 !important}
+  .sec td.name{font-weight:bold}
+  .tick{text-align:center;font-size:10pt;line-height:1;cursor:pointer;user-select:none;padding:0}
+  .tick:hover{background:#eaf2ff}
+  .tick:focus{outline:2px solid #2563eb;outline-offset:-2px}
+  .off{background:repeating-linear-gradient(45deg,#e5e5e5 0 3px,#fff 3px 6px);cursor:not-allowed}
+  .ini{padding:0}
+  .ini input{width:100%;height:100%;border:0;background:transparent;text-align:center;font:bold 6pt Arial;text-transform:uppercase;padding:0}
+  .ini.off input{pointer-events:none}
+  tr.sign td.name{font-weight:bold}
+  tr.cmt{height:1.6cm !important}
+  tr.cmt td.name{font-weight:bold;vertical-align:top;padding-top:2px}
+  td.cbox{padding:0;background-image:linear-gradient(to right,transparent calc(100% - 1px),#000 0);background-size:.66cm 100%;background-repeat:repeat-x}
+  td.cbox textarea{width:100%;height:100%;border:0;resize:none;background:transparent;font:7.5pt Arial;padding:2px 4px;outline:none;line-height:1.35}
+
+  .name{position:relative}
+  [contenteditable=true]{background:#fff8d6;outline:1px dashed #d4a017;min-width:1em}
+  span.ce{display:inline-block}
+  .ed{border:0;cursor:pointer;font-size:10px;border-radius:3px;padding:1px 5px;position:absolute;top:50%;transform:translateY(-50%)}
+  .ed.del{background:#fee2e2;color:#9b1c1c;right:2px}.ed.add{background:#dcfce7;color:#166534;right:24px}
+  .edtools{display:none;gap:10px;justify-content:center;padding:0 14px 20px}
+  body.editing .edtools{display:flex}
+  .edtools button{border:0;border-radius:6px;padding:8px 14px;font-size:14px;cursor:pointer;background:#fff8d6;font-weight:700}
+  body.editing .bar{background:#a16207}
+  .bar button.on{background:#fde68a}
+  /* print: identical to the paper form */
+  @page{size:A4 landscape;margin:1.55cm 1.5cm .5cm 1.9cm}
+  @media print{
+    .quickbar{display:none !important}
+    .ed,.edtools{display:none !important}
+    [contenteditable]{background:none !important;outline:none !important}
+    body{background:#fff}
+    .bar,.noprint{display:none !important}
+    .scroll{overflow:visible;padding:0}
+    .sheet{width:auto;margin:0;padding:0}
+    .monthline{height:1.2cm}
+    #monthIn{display:none}#monthText{display:inline}
+    .tick:hover{background:none}
+    .grid th,.blk{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    .off,td.cbox{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    .ini input,td.cbox textarea{color:#000}
+    *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  }
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <b>HX3-F68 · Sharp Tools Record</b>
+  <button class="tab active" id="tabFill">Fill form</button>
+  <button class="tab" id="tabRec">Records / Print</button>
+  <button class="tab" id="tabSheet">Google Sheet</button>
+  <span id="status">Saved</span>
+  <button id="btnEdit" class="fillonly">Edit form</button>
+  <button id="btnClear" class="danger fillonly">Clear month</button>
+</div>
+<div class="quickbar noprint">
+  <label>Checked by initials <input id="sigChk" maxlength="4" placeholder="e.g. AB"></label>
+  <label>Verified by initials <input id="sigVer" maxlength="4" placeholder="e.g. QA"></label>
+  <label class="wk"><input type="checkbox" id="sigWeek"> Verified covers the whole week (7 days)</label>
+  <span class="hint">Set initials once, then click a Checked by / Verified by box to stamp it. Click again to remove.</span>
+</div>
+<div class="recpanel noprint">
+  <label for="recSel"><b>Select record:</b></label>
+  <select id="recSel"></select>
+  <button id="btnPrint">Print</button>
+  <span class="hint">Choose a month, check the preview below, then press Print.</span>
+</div>
+
+<div class="scroll"><div class="sheet">
+
+  <table class="hdr">
+    <colgroup><col style="width:20.7cm"><col style="width:2.5cm"><col style="width:3.1cm"></colgroup>
+    <tr><td class="title" rowspan="2" data-h="company">HEXA FOOD SDN BHD (HEXA 3)</td><td class="lbl">Doc No.:</td><td class="lbl" data-h="docNo">HX3 - F68</td></tr>
+    <tr><td class="lbl">Issue No:</td><td class="lbl" data-h="issueNo">1</td></tr>
+    <tr><td class="title" rowspan="2" data-h="title">SHARP TOOLS RECORD</td><td class="lbl">Issue Date:</td><td class="lbl" data-h="issueDate">01/12/2022</td></tr>
+    <tr><td class="lbl">Page:</td><td class="lbl">1 of 1</td></tr>
+  </table>
+
+  <div class="monthline">Month:<input type="month" id="monthIn"><span id="monthText"></span></div>
+
+  <table class="grid" id="grid">
+    <colgroup id="cols"></colgroup>
+    <thead>
+      <tr><th rowspan="2" style="font-size:7.5pt">Area/Item</th><th rowspan="2" style="font-size:7.5pt">Freq</th>
+        <th class="t1" colspan="31"><b data-h="dayTitle">DAY OF THE MONTH. Please tick (&#10003; when in good condition</b></th></tr>
+      <tr class="days" id="dayRow"></tr>
+    </thead>
+    <tbody id="body"></tbody>
+  </table>
+
+</div></div>
+<div class="edtools"><button id="btnAddSec">＋ Add section</button><button id="btnReset">Reset form to default</button></div>
+
+<script>
+(function(){
+  var DEFAULT={
+    hdr:{company:"HEXA FOOD SDN BHD (HEXA 3)",docNo:"HX3 - F68",issueNo:"1",title:"SHARP TOOLS RECORD",issueDate:"01/12/2022",dayTitle:"DAY OF THE MONTH. Please tick (\u2713 when in good condition"},
+    days:(function(){var a=[];for(var i=1;i<=31;i++)a.push(String(i));return a})(),
+    sections:[
+      {name:"Scissor",bold:true,items:[["Scissors 1 (1A)"],["Scissors 2 (1B)"],["Scissors 3 (1C)"],["Scissors 4 (2A)"],["Scissors 5 (2B)"],["Scissors 6 (2C)"],["Scissors 7 (Warehouse)"]]},
+      {name:"Cutters",bold:false,items:[["Cutter 1"],["Cutter 2"],["Cutter 3"],["Cutter 4"]]}
+    ]
+  };
+  var n0=0;DEFAULT.sections.forEach(function(sec){sec.items=sec.items.map(function(a){return{id:"r"+(n0++),name:a[0],freq:"D"}})});
+  var MONTHS=["January","February","March","April","May","June","July","August","September","October","November","December"];
+  // Paste your Google Apps Script Web App URL here to also save every record to a Google Sheet.
+  var SCRIPT_URL="https://script.google.com/macros/s/AKfycbzVJq4I8fptdVjswP5ug3RB-5z-z2pp-WjaQAT8zCpyAPbOWyjEk6jdBgvsiyUcc-ezJQ/exec";
+  // Paste your Google Sheet link here (opens from the "Google Sheet" tab).
+  var SHEET_URL="https://docs.google.com/spreadsheets/d/16WTe7GINc7dHfD4ilgcMlo9n6Ibl1G9zDuMFGOscrqw/edit?gid=0#gid=0";
+  var KEY="hx3-f68:",CKEY="hx3-f68-config";
+  var $=function(id){return document.getElementById(id)};
+  var state,monthKey,dim,cfg,editing=false,mode="fill",cloudMonths=[];
+  function esc(t){return String(t).replace(/&/g,"&amp;").replace(/</g,"&lt;")}
+  function uid(){return"i"+Date.now().toString(36)+Math.random().toString(36).slice(2,5)}
+  function clone(o){return JSON.parse(JSON.stringify(o))}
+  function loadCfg(){try{cfg=JSON.parse(localStorage.getItem(CKEY))}catch(e){cfg=null}if(!cfg||!cfg.sections)cfg=clone(DEFAULT);cfg.hdr=Object.assign({},DEFAULT.hdr,cfg.hdr);if(!cfg.days||cfg.days.length!==31)cfg.days=clone(DEFAULT.days)}
+  function saveCfg(){try{localStorage.setItem(CKEY,JSON.stringify(cfg));$("status").textContent="Saved";cloudSave()}catch(e){$("status").textContent="Could not save"}}
+
+  var cols='<col style="width:4.62cm"><col style="width:1.25cm">';
+  for(var i=0;i<31;i++)cols+='<col style="width:.66cm">';
+  $("cols").innerHTML=cols;
+
+  function build(){
+    var ce=editing?' contenteditable="true"':'',h='';
+    cfg.sections.forEach(function(sec,si){
+      h+='<tr class="sec"><td class="name"'+(sec.bold?'':' style="font-weight:normal"')+'><span class="ce"'+ce+' data-f="sec" data-si="'+si+'">'+esc(sec.name)+'</span>'
+        +(editing?'<button class="ed add" data-act="addItem" data-si="'+si+'" title="Add item">＋</button><button class="ed del" data-act="delSec" data-si="'+si+'" title="Delete section">✕</button>':'')
+        +'</td><td class="blk" colspan="32"></td></tr>';
+      sec.items.forEach(function(it,ii){
+        h+='<tr><td class="name"><span class="ce"'+ce+' data-f="item" data-si="'+si+'" data-ii="'+ii+'">'+esc(it.name)+'</span>'
+          +(editing?'<button class="ed del" data-act="delItem" data-si="'+si+'" data-ii="'+ii+'" title="Delete item">✕</button>':'')
+          +'</td><td class="freq"><span class="ce"'+ce+' data-f="freq" data-si="'+si+'" data-ii="'+ii+'">'+esc(it.freq)+'</span></td>';
+        for(var d=1;d<=31;d++)h+='<td class="tick" tabindex="0" data-k="'+it.id+'d'+d+'" data-d="'+d+'"></td>';
+        h+='</tr>';
+      });
+    });
+    [["Checked by:","chk"],["Verified by:","ver"]].forEach(function(x){
+      h+='<tr class="sign"><td class="name">'+x[0]+'</td><td class="blk"></td>';
+      for(var d=1;d<=31;d++)h+='<td class="ini" data-d="'+d+'"><input maxlength="4" data-k="'+x[1]+d+'" aria-label="'+x[0]+' day '+d+'"></td>';
+      h+='</tr>';
+    });
+    h+='<tr class="cmt"><td class="name">Comments:</td><td class="blk"></td><td class="cbox" colspan="31"><textarea id="comments" aria-label="Comments"></textarea></td></tr>';
+    $("body").innerHTML=h;
+    var dr='';for(var d=0;d<31;d++)dr+='<th data-day="'+d+'"'+ce+(editing?'':' title="Click to tick / untick all items for this day"')+'>'+esc(cfg.days[d])+'</th>';
+    $("dayRow").innerHTML=dr;
+    document.querySelectorAll("[data-h]").forEach(function(el){
+      el.textContent=cfg.hdr[el.dataset.h]||"";
+      if(editing)el.setAttribute("contenteditable","true");else el.removeAttribute("contenteditable");
+    });
+    document.title=cfg.hdr.docNo+" "+cfg.hdr.title;
+    render();
+  }
+
+  function load(){
+    try{state=JSON.parse(localStorage.getItem(KEY+monthKey))||{}}catch(e){state={}}
+    state.t=state.t||{};state.i=state.i||{};state.c=state.c||"";
+  }
+  function save(){
+    try{localStorage.setItem(KEY+monthKey,JSON.stringify(state));$("status").textContent="Saved";refreshList();cloudSave()}
+    catch(e){$("status").textContent="Could not save (browser storage blocked)"}
+  }
+  function render(){
+    document.querySelectorAll(".tick").forEach(function(td){
+      var d=+td.dataset.d,off=d>dim;
+      td.classList.toggle("off",off);
+      td.textContent=(!off&&state.t[td.dataset.k])?"\u2713":"";
+      if(off)td.removeAttribute("tabindex");
+    });
+    document.querySelectorAll(".ini").forEach(function(td){
+      var inp=td.firstChild,d=+td.dataset.d;
+      td.classList.toggle("off",d>dim);
+      inp.value=d>dim?"":(state.i[inp.dataset.k]||"");
+      inp.disabled=d>dim||editing||mode==="rec";
+    });
+    $("comments").value=state.c;$("comments").disabled=editing||mode==="rec";
+    var p=monthKey.split("-");
+    $("monthText").textContent=MONTHS[+p[1]-1]+" "+p[0];
+  }
+  function gridRows(){
+    var rows=[],tk=function(k){return state.t[k]?"\u2713":""};
+    cfg.sections.forEach(function(sec){
+      rows.push([sec.name]);
+      sec.items.forEach(function(it){var r=[it.name,it.freq];for(var d=1;d<=31;d++)r.push(d<=dim?tk(it.id+"d"+d):"");rows.push(r)});
+    });
+    [["Checked by:","chk"],["Verified by:","ver"]].forEach(function(x){var r=[x[0],""];for(var d=1;d<=31;d++)r.push(state.i[x[1]+d]||"");rows.push(r)});
+    rows.push(["Comments:","",state.c]);
+    return rows;
+  }
+  var ct;
+  function cloudSave(){
+    if(!SCRIPT_URL)return;clearTimeout(ct);
+    ct=setTimeout(function(){
+      $("status").textContent="Syncing…";
+      fetch(SCRIPT_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},
+        body:JSON.stringify({action:"save",month:monthKey,state:state,cfg:cfg,days:cfg.days,grid:gridRows()})})
+      .then(function(r){return r.json()}).then(function(j){$("status").textContent=j&&j.ok?"Saved to Google Sheet":"Saved on device (sheet error)"})
+      .catch(function(){$("status").textContent="Saved on device (sync failed)"});
+    },800);
+  }
+  function cloudLoad(){
+    if(!SCRIPT_URL)return;var mk=monthKey;
+    fetch(SCRIPT_URL+"?action=get&month="+mk).then(function(r){return r.json()}).then(function(j){
+      if(mk!==monthKey||!j||!j.ok)return;
+      if(j.cfg&&j.cfg.sections){cfg=j.cfg;cfg.hdr=Object.assign({},DEFAULT.hdr,cfg.hdr);if(!cfg.days||cfg.days.length!==31)cfg.days=clone(DEFAULT.days);try{localStorage.setItem(CKEY,JSON.stringify(cfg))}catch(e){}}
+      if(j.state){state=j.state;state.t=state.t||{};state.i=state.i||{};state.c=state.c||"";try{localStorage.setItem(KEY+mk,JSON.stringify(state))}catch(e){}}
+      build();refreshList();$("status").textContent="Loaded from Google Sheet";
+    }).catch(function(){});
+  }
+  function hasData(raw){
+    try{var o=JSON.parse(raw);return !!(o&&(Object.keys(o.t||{}).length||Object.keys(o.i||{}).length||o.c))}catch(e){return false}
+  }
+  function refreshList(){
+    var keys=[];
+    for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(k&&k.indexOf(KEY)===0&&hasData(localStorage.getItem(k)))keys.push(k.slice(KEY.length))}
+    cloudMonths.forEach(function(m){if(keys.indexOf(m)<0)keys.push(m)});
+    keys.sort().reverse();
+    if(!keys.length){$("recSel").innerHTML='<option value="">No saved records yet</option>';return keys}
+    $("recSel").innerHTML=keys.map(function(m){
+      var raw=localStorage.getItem(KEY+m),c=0;
+      try{c=Object.keys((JSON.parse(raw)||{t:{}}).t).length}catch(e){}
+      var p=m.split("-");
+      return '<option value="'+m+'"'+(m===monthKey?' selected':'')+'>'+MONTHS[+p[1]-1]+" "+p[0]+(hasData(raw)?"":" \u00b7 from sheet")+'</option>';
+    }).join("");
+    return keys;
+  }
+  function cloudList(){
+    if(!SCRIPT_URL)return;
+    fetch(SCRIPT_URL+"?action=list").then(function(r){return r.json()}).then(function(j){
+      if(j&&j.ok&&j.months){cloudMonths=j.months;refreshList()}
+    }).catch(function(){});
+  }
+  function setMode(m){
+    if(m==="rec"&&editing)setEditing(false);
+    mode=m;document.body.classList.toggle("rec",m==="rec");
+    $("tabFill").classList.toggle("active",m==="fill");
+    $("tabRec").classList.toggle("active",m==="rec");
+    render();var ks=refreshList();
+    if(m==="rec"){
+      if(ks.length&&ks.indexOf(monthKey)<0)setMonth(ks[0]);
+      cloudList();
+    }
+  }
+  function setMonth(v){
+    monthKey=v;var p=v.split("-");
+    dim=new Date(+p[0],+p[1],0).getDate();
+    $("monthIn").value=v;load();render();refreshList();cloudLoad();
+  }
+  function setEditing(on){
+    editing=on;document.body.classList.toggle("editing",on);
+    $("btnEdit").textContent=on?"Done editing":"Edit form";
+    $("btnEdit").classList.toggle("on",on);
+    build();
+  }
+
+  $("dayRow").addEventListener("click",function(e){
+    var th=e.target.closest("th[data-day]");if(!th||editing||mode==="rec")return;
+    var d=+th.dataset.day+1;if(d>dim)return;
+    var keys=[];cfg.sections.forEach(function(sec){sec.items.forEach(function(it){keys.push(it.id+"d"+d)})});
+    var allOn=keys.length&&keys.every(function(k){return state.t[k]});
+    keys.forEach(function(k){if(allOn)delete state.t[k];else state.t[k]=1});
+    save();render();
+  });
+  $("body").addEventListener("click",function(e){
+    var b=e.target.closest("button[data-act]");
+    if(b){
+      var si=+b.dataset.si,ii=+b.dataset.ii,a=b.dataset.act;
+      if(a==="addItem"){cfg.sections[si].items.push({id:uid(),name:"New item",freq:"D"})}
+      else if(a==="delItem"){if(!confirm('Delete "'+cfg.sections[si].items[ii].name+'" from the form?'))return;cfg.sections[si].items.splice(ii,1)}
+      else if(a==="delSec"){if(!confirm('Delete section "'+cfg.sections[si].name+'" and all its items?'))return;cfg.sections.splice(si,1)}
+      saveCfg();build();return;
+    }
+    if(editing||mode==="rec")return;
+    var ic=e.target.closest(".ini");
+    if(ic){stamp(ic);return}
+    var td=e.target.closest(".tick");if(!td||td.classList.contains("off"))return;
+    toggle(td);
+  });
+  $("body").addEventListener("keydown",function(e){
+    if(e.target.isContentEditable&&e.key==="Enter"){e.preventDefault();return}
+    var td=e.target.closest&&e.target.closest(".tick");
+    if(td&&!editing&&mode!=="rec"&&(e.key===" "||e.key==="Enter")){e.preventDefault();if(!td.classList.contains("off"))toggle(td)}
+  });
+  function toggle(td){
+    var k=td.dataset.k;
+    if(state.t[k]){delete state.t[k];td.textContent=""}else{state.t[k]=1;td.textContent="\u2713"}
+    save();
+  }
+  document.addEventListener("input",function(e){
+    var el=e.target;
+    if(el.dataset&&el.dataset.day!==undefined&&el.isContentEditable){cfg.days[+el.dataset.day]=el.textContent.trim();saveCfg();return}
+    if(el.dataset&&el.dataset.h&&el.isContentEditable){cfg.hdr[el.dataset.h]=el.textContent.trim();document.title=cfg.hdr.docNo+" "+cfg.hdr.title;saveCfg();return}
+    if(el.dataset&&el.dataset.f&&el.isContentEditable){
+      var sec=cfg.sections[+el.dataset.si],v=el.textContent.trim();
+      if(el.dataset.f==="sec")sec.name=v;
+      else sec.items[+el.dataset.ii][el.dataset.f==="item"?"name":"freq"]=v;
+      saveCfg();return;
+    }
+    if(el.id==="comments"){state.c=el.value;save();return}
+    if(el.tagName==="INPUT"&&el.dataset.k&&el.closest("#body")){
+      el.value=el.value.toUpperCase();
+      if(el.value)state.i[el.dataset.k]=el.value;else delete state.i[el.dataset.k];
+      save();
+    }
+  });
+  document.addEventListener("keydown",function(e){if(e.key==="Enter"&&e.target.isContentEditable)e.preventDefault()});
+  $("tabFill").addEventListener("click",function(){setMode("fill")});
+  $("tabRec").addEventListener("click",function(){setMode("rec")});
+  $("tabSheet").addEventListener("click",function(){
+    if(SHEET_URL)window.open(SHEET_URL,"_blank","noopener");
+    else alert("Google Sheet link is not set yet. Paste it into SHEET_URL in index.html.");
+  });
+  $("recSel").addEventListener("change",function(){if(this.value)setMonth(this.value)});
+  $("monthIn").addEventListener("change",function(){if(this.value)setMonth(this.value)});
+  $("btnEdit").addEventListener("click",function(){setEditing(!editing)});
+  $("btnAddSec").addEventListener("click",function(){cfg.sections.push({name:"New section",bold:true,items:[{id:uid(),name:"New item",freq:"D"}]});saveCfg();build()});
+  $("btnReset").addEventListener("click",function(){if(confirm("Reset the form layout and header to the original F68? (Ticks already recorded are kept.)")){cfg=clone(DEFAULT);saveCfg();build()}});
+  $("btnPrint").addEventListener("click",function(){if(editing)setEditing(false);window.print()});
+  window.addEventListener("beforeprint",function(){if(editing)setEditing(false)});
+  $("btnClear").addEventListener("click",function(){
+    if(confirm("Clear all entries for "+$("monthText").textContent+"?")){state={t:{},i:{},c:""};save();render()}
+  });
+
+  var SIGKEY="hx3-f68-signer",signer={chk:"",ver:"",week:false};
+  try{var sg=JSON.parse(localStorage.getItem(SIGKEY));if(sg)signer=Object.assign(signer,sg)}catch(e){}
+  $("sigChk").value=signer.chk;$("sigVer").value=signer.ver;$("sigWeek").checked=!!signer.week;
+  function saveSigner(){try{localStorage.setItem(SIGKEY,JSON.stringify(signer))}catch(e){}}
+  $("sigChk").addEventListener("input",function(){this.value=this.value.toUpperCase();signer.chk=this.value.trim();saveSigner()});
+  $("sigVer").addEventListener("input",function(){this.value=this.value.toUpperCase();signer.ver=this.value.trim();saveSigner()});
+  $("sigWeek").addEventListener("change",function(){signer.week=this.checked;saveSigner()});
+  function setIni(key,day,val){
+    var inp=document.querySelector('.ini input[data-k="'+key+day+'"]');
+    if(val)state.i[key+day]=val;else delete state.i[key+day];
+    if(inp)inp.value=val||"";
+  }
+  function stamp(td){
+    if(td.classList.contains("off"))return;
+    var inp=td.firstChild,k=inp.dataset.k,role=k.slice(0,3),d=+td.dataset.d,sig=signer[role];
+    if(!sig){inp.focus();return}               // no initials set: type manually as before
+    var cur=state.i[k]||"";
+    if(cur&&cur!==sig){inp.focus();return}     // someone else's / typed value: let it be edited
+    var on=!cur,span=(role==="ver"&&signer.week)?7:1;
+    for(var j=0;j<span&&d+j<=dim;j++){
+      var cell=state.i[role+(d+j)]||"";
+      if(on){if(!cell)setIni(role,d+j,sig)}
+      else if(cell===sig)setIni(role,d+j,"");
+    }
+    inp.blur();save();
+  }
+
+  loadCfg();
+  var n=new Date();
+  monthKey=n.getFullYear()+"-"+("0"+(n.getMonth()+1)).slice(-2);
+  dim=new Date(n.getFullYear(),n.getMonth()+1,0).getDate();
+  load();
+  build();
+  setMonth(monthKey);
+})();
+</script>
+</body>
+</html>
